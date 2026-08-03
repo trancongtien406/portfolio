@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Mỗi tenant = 1 website con với subdomain riêng
+model Tenant {
+  id          String   @id @default(cuid())
+  /// Subdomain duy nhất, vd: "myshop" → myshop.tiendev.id.vn
+  subdomain   String   @unique
+  /// Tên hiển thị website
+  name        String
+  /// Mô tả ngắn
+  description String?
+  /// Tên chủ website
+  ownerName   String
+  /// Email chủ website
+  ownerEmail  String
+  /// Màu chủ đạo (hex), mặc định "#18181b" (zinc-900)
+  primaryColor String  @default("#18181b")
+  /// Logo URL (tuỳ chọn)
+  logoUrl     String?
+  /// Trạng thái website
+  status      TenantStatus @default(ACTIVE)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pages       Page[]
+
+  @@index([subdomain])
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+/// Các trang tĩnh của mỗi tenant website
+model Page {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Slug dùng cho URL: /about, /services, ...
+  slug      String
+  title     String
+  /// Nội dung HTML hoặc markdown
+  content   String   @db.Text
+  /// Thứ tự hiển thị trên menu
+  sortOrder Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@map("pages")
+}
+
+/// Bài viết blog cho SEO
+model BlogPost {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  content     String   @db.Text
+  coverImage  String?
+  tags        String[] @default([])
+  published   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([published])
+  @@map("blog_posts")
+}
+
+/// Dự án trong portfolio
+model Project {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  /// Loại dự án: web | app
+  type            String   @default("web")
+  title           String
+  /// Mô tả ngắn hiển thị trên card
+  description     String
+  /// Mô tả chi tiết hiển thị trên trang detail
+  longDescription String   @db.Text
+  /// Công nghệ sử dụng
+  stack           String[] @default([])
+  /// Tính năng chính
+  features        String[] @default([])
+  /// Link GitHub
+  github          String?
+  /// Link demo/live
+  demoUrl         String?
+  /// Ảnh bìa
+  coverImage      String?
+  /// Alt text cho ảnh
+  imageAlt        String?
+  /// Hiển thị hay ẩn
+  published       Boolean  @default(true)
+  /// Thứ tự hiển thị (nhỏ = ưu tiên)
+  sortOrder       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([slug])
+  @@index([published])
+  @@index([type])
+  @@map("projects")
+}
+
+/// Tin nhắn liên hệ gửi từ portfolio
+model ContactMessage {
+  id         String        @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  type       String?
+  message    String        @db.Text
+  status     ContactStatus @default(NEW)
+  repliedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+  @@map("contact_messages")
+}
