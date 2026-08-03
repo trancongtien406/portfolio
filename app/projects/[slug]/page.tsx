@@ -5,11 +5,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export async function generateStaticParams() {
-  const projects = await prisma.project.findMany({
-    where: { published: true },
-    select: { slug: true },
-  });
-  return projects.map((p) => ({ slug: p.slug }));
+  try {
+    const projects = await prisma.project.findMany({
+      where: { published: true },
+      select: { slug: true },
+    });
+    return projects.map((p) => ({ slug: p.slug }));
+  } catch {
+    // CI/build without DB — pages resolve on-demand at runtime
+    return [];
+  }
 }
 
 export async function generateMetadata({
