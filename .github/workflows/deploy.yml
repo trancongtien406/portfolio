@@ -55,13 +55,17 @@ jobs:
           target: /tmp/portfolio-release
           strip_components: 1
       - uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          envs: APP_ENV
           script: |
             set -euo pipefail
+            export APP_ENV APP_ENV_LOCAL
             APP_ROOT=/home/tiendev/portfolio PM2_NAME=porfolio RELEASE_ID="${{ github.sha }}" \
             TARBALL=/tmp/portfolio-release/app.tar.gz PM2_SCRIPT=server.js PORT=4004 \
             bash /home/tiendev/bin/deploy-release.sh
